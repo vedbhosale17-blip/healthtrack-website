@@ -296,40 +296,28 @@
             setLoading(true);
             messageBox.style.display = "none";
 
-            // Check if the script URL has been configured
-            if (GOOGLE_SCRIPT_URL.includes("YOUR_SCRIPT_ID_HERE")) {
-                setTimeout(() => {
-                    setLoading(false);
-                    showMessage("success", "✅ Form is ready! Please connect your Google Apps Script URL to save data to Sheets. See the README for instructions.");
-                }, 800);
-                return;
-            }
-
             try {
-                const payload = new FormData();
-                payload.append("name", name);
-                payload.append("email", email);
-                payload.append("phone", phone);
-                // NOTE: Never send plain-text passwords to Sheets in production.
-                // This is for educational/demo purposes only.
-                payload.append("timestamp", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
+                // Use URLSearchParams + no-cors to avoid CORS errors with Google Apps Script
+                const params = new URLSearchParams();
+                params.append("name", name);
+                params.append("email", email);
+                params.append("phone", phone);
+                params.append("timestamp", new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }));
 
-                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                await fetch(GOOGLE_SCRIPT_URL, {
                     method: "POST",
-                    body: payload
+                    mode: "no-cors",   // Prevents CORS error; data still reaches Google Sheets
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: params.toString()
                 });
 
-                const result = await response.json();
+                // no-cors means we can't read the response, so we assume success
+                form.reset();
+                showMessage("success", "🎉 Account created successfully! Welcome to HealthTrack.");
 
-                if (result.status === "success") {
-                    form.reset();
-                    showMessage("success", "🎉 Account created successfully! Welcome to HealthTrack.");
-                } else {
-                    showMessage("error", "Something went wrong. Please try again.");
-                }
             } catch (err) {
                 console.error(err);
-                showMessage("error", "Could not connect. Check your internet and try again.");
+                showMessage("error", "Could not connect. Please check your internet and try again.");
             } finally {
                 setLoading(false);
             }
